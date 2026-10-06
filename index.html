@@ -1,0 +1,912 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+    <meta name="theme-color" content="#05060a" />
+    <title>Swanix AI Agent</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400&family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap"
+    />
+    <link rel="stylesheet" href="hark.css" />
+    <link rel="stylesheet" href="hark-hero.css" />
+    <style>
+      :root {
+        --x-bg: #05060a;
+        --x-cyan: #3df5ff;
+        --x-violet: #8b5cff;
+        --x-orange: #ff9a1f;
+        --x-grad: linear-gradient(120deg, #3df5ff 0%, #8b5cff 55%, #ff9a1f 100%);
+        --x-ink: #eef3ff;
+        --x-ink-2: #a3acc6;
+        --x-glass: rgba(16, 20, 34, 0.55);
+        --x-glass-2: rgba(255, 255, 255, 0.06);
+        --x-line: rgba(255, 255, 255, 0.12);
+        --x-display: "Space Grotesk", var(--sans), system-ui, sans-serif;
+        --x-ui: "Inter", var(--sans), system-ui, sans-serif;
+        --x-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      html, body { height: 100%; margin: 0; overflow: hidden; background: var(--x-bg); }
+      body { color: var(--x-ink); font-family: var(--x-ui); font-size: 15px; -webkit-tap-highlight-color: transparent; }
+      .x-app { position: fixed; inset: 0; display: flex; flex-direction: column; height: 100dvh; max-width: 100vw; overflow: hidden; }
+      #x-bg { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 0; display: block; }
+      .x-vignette { position: fixed; inset: 0; z-index: 0; pointer-events: none;
+        background: radial-gradient(120% 80% at 50% 40%, transparent 40%, rgba(5, 6, 10, 0.85) 100%); }
+      .x-glass { background: var(--x-glass); border: 1px solid var(--x-line);
+        -webkit-backdrop-filter: blur(18px) saturate(140%); backdrop-filter: blur(18px) saturate(140%); }
+
+      /* top bar */
+      .x-top { position: relative; z-index: 3; margin: calc(env(safe-area-inset-top) + 10px) 12px 0; padding: 6px 6px 6px 16px;
+        display: flex; align-items: center; gap: 10px; border-radius: 999px; }
+      .x-word { font-family: var(--x-display); font-weight: 700; font-size: 20px; letter-spacing: 0.18em; margin: 0;
+        background: linear-gradient(100deg, #3df5ff, #8b5cff, #ff9a1f, #fff, #3df5ff); background-size: 300% 100%;
+        -webkit-background-clip: text; background-clip: text; color: var(--x-cyan); -webkit-text-fill-color: transparent; animation: x-sheen 7s linear infinite; }
+      @keyframes x-sheen { to { background-position: 300% 0; } }
+      .x-status { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--x-ink-2); margin-left: auto; white-space: nowrap; }
+      .x-status i { width: 8px; height: 8px; border-radius: 50%; background: var(--x-orange); box-shadow: 0 0 10px var(--x-orange); }
+      .x-status.is-on i { background: #3dff9a; box-shadow: 0 0 10px #3dff9a; animation: x-blink 2.4s ease-in-out infinite; }
+      @keyframes x-blink { 50% { opacity: 0.45; } }
+      .x-icon { width: 44px; height: 44px; min-width: 44px; border-radius: 50%; border: 1px solid var(--x-line); background: var(--x-glass-2);
+        color: var(--x-ink); display: grid; place-items: center; cursor: pointer; transition: transform 0.25s var(--x-spring), background 0.2s; padding: 0; }
+      .x-icon:hover { background: rgba(255, 255, 255, 0.12); }
+      .x-icon:active { transform: scale(0.88); }
+      .x-icon svg { width: 20px; height: 20px; }
+      .x-gear:hover svg { transform: rotate(60deg); }
+      .x-gear svg { transition: transform 0.5s var(--x-spring); }
+
+      /* banner */
+      .x-banner { position: relative; z-index: 3; margin: 10px 12px 0; padding: 10px 14px; border-radius: 16px; font-size: 13px;
+        display: flex; align-items: center; gap: 10px; color: var(--x-ink); }
+      .x-banner button { margin-left: auto; }
+      .x-banner[hidden] { display: none; }
+
+      /* chat scroller */
+      .x-scroll { position: relative; z-index: 2; flex: 1; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch;
+        padding: 16px 12px 24px; scroll-behavior: smooth; overscroll-behavior: contain; }
+      .x-inner { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+
+      /* welcome */
+      .x-welcome { text-align: center; padding: 18vh 4px 0; animation: x-rise 0.8s var(--x-spring) both; }
+      .x-welcome h1 { font-family: var(--x-display); font-weight: 600; font-size: clamp(28px, 8vw, 44px); line-height: 1.1; margin: 0 0 8px; letter-spacing: -0.01em; }
+      .x-welcome h1 span { background: var(--x-grad); -webkit-background-clip: text; background-clip: text; color: var(--x-cyan); -webkit-text-fill-color: transparent; }
+      .x-welcome p { color: var(--x-ink-2); margin: 0 0 24px; font-size: 15px; }
+      .x-chips { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: left; }
+      .x-chip { min-height: 72px; padding: 12px; border-radius: 18px; color: var(--x-ink); font: 500 13px/1.35 var(--x-ui); cursor: pointer;
+        display: flex; flex-direction: column; gap: 6px; align-items: flex-start; transition: transform 0.3s var(--x-spring), border-color 0.2s;
+        animation: x-rise 0.7s var(--x-spring) both; }
+      .x-chip:nth-child(2) { animation-delay: 0.06s; } .x-chip:nth-child(3) { animation-delay: 0.12s; } .x-chip:nth-child(4) { animation-delay: 0.18s; }
+      .x-chip b { font-size: 18px; line-height: 1; }
+      .x-chip:hover { border-color: rgba(61, 245, 255, 0.5); transform: translateY(-2px); }
+      .x-chip:active { transform: scale(0.95); }
+      @keyframes x-rise { from { opacity: 0; transform: translateY(16px) scale(0.96); } }
+
+      /* messages */
+      .x-msg { display: flex; gap: 8px; align-items: flex-end; max-width: 100%; animation: x-pop 0.5s var(--x-spring) both; }
+      .x-msg--user { justify-content: flex-end; }
+      @keyframes x-pop { from { opacity: 0; transform: scale(0.85) translateY(10px); } }
+      .x-msg--user { transform-origin: bottom right; }
+      .x-msg--ai { transform-origin: bottom left; }
+      .x-bubble { min-width: 0; max-width: min(86%, 640px); padding: 11px 15px; border-radius: 20px; line-height: 1.55; overflow-wrap: anywhere; }
+      .x-msg--user .x-bubble { background-color: #3df5ff; background-image: var(--x-grad); color: #05060a; font-weight: 500; border-bottom-right-radius: 6px; white-space: pre-wrap;
+        box-shadow: 0 8px 30px rgba(139, 92, 255, 0.35); }
+      .x-msg--ai .x-bubble { border-bottom-left-radius: 6px; }
+      .x-ava { width: 26px; height: 26px; min-width: 26px; border-radius: 50%; margin-bottom: 4px;
+        background: radial-gradient(circle at 35% 35%, #fff 0 8%, #3df5ff 22%, #8b5cff 60%, #ff9a1f 100%);
+        box-shadow: 0 0 14px rgba(61, 245, 255, 0.55); animation: x-breath 3s ease-in-out infinite; }
+      @keyframes x-breath { 50% { transform: scale(0.88); box-shadow: 0 0 6px rgba(61, 245, 255, 0.35); } }
+      .x-aiwrap { display: flex; flex-direction: column; gap: 4px; min-width: 0; max-width: min(88%, 660px); }
+      .x-aiwrap .x-bubble { max-width: 100%; }
+      .x-actions { display: flex; gap: 2px; opacity: 0; transition: opacity 0.3s; }
+      .x-actions.is-ready { opacity: 1; }
+      .x-act { min-height: 44px; min-width: 44px; padding: 0 10px; border: 0; background: none; color: var(--x-ink-2); font: 500 12px var(--x-ui);
+        display: inline-flex; align-items: center; gap: 6px; cursor: pointer; border-radius: 12px; transition: color 0.2s, transform 0.25s var(--x-spring); }
+      .x-act:hover { color: var(--x-cyan); }
+      .x-act:active { transform: scale(0.9); }
+      .x-act svg { width: 15px; height: 15px; }
+
+      /* markdown */
+      .x-md > :first-child { margin-top: 0; } .x-md > :last-child { margin-bottom: 0; }
+      .x-md p { margin: 0 0 10px; }
+      .x-md h3, .x-md h4, .x-md h5 { font-family: var(--x-display); margin: 14px 0 6px; line-height: 1.25; }
+      .x-md h3 { font-size: 18px; } .x-md h4 { font-size: 16px; } .x-md h5 { font-size: 15px; }
+      .x-md ul, .x-md ol { margin: 0 0 10px; padding-left: 22px; }
+      .x-md li { margin: 3px 0; }
+      .x-md li::marker { color: var(--x-cyan); }
+      .x-md strong { color: #fff; }
+      .x-md a { color: var(--x-cyan); text-underline-offset: 3px; }
+      .x-md code { font-family: "Geist Mono", ui-monospace, monospace; font-size: 13px; background: rgba(139, 92, 255, 0.18); padding: 1px 6px; border-radius: 6px; }
+      .x-md blockquote { margin: 0 0 10px; padding: 4px 12px; border-left: 3px solid var(--x-violet); color: var(--x-ink-2); }
+      .x-code { margin: 0 0 10px; border-radius: 14px; border: 1px solid var(--x-line); background: rgba(0, 0, 0, 0.45); overflow: hidden; }
+      .x-code__bar { display: flex; align-items: center; justify-content: space-between; padding-left: 12px; font-size: 12px; color: var(--x-ink-2);
+        border-bottom: 1px solid var(--x-line); }
+      .x-code__bar button { min-height: 36px; min-width: 64px; border: 0; background: none; color: var(--x-cyan); font: 500 12px var(--x-ui); cursor: pointer; padding: 0 12px; }
+      .x-code pre { margin: 0; padding: 12px; overflow-x: auto; }
+      .x-code pre code { background: none; padding: 0; font-size: 12.5px; line-height: 1.55; white-space: pre; }
+      .x-tablewrap { margin: 0 0 10px; overflow-x: auto; border-radius: 12px; border: 1px solid var(--x-line); }
+      .x-md table { border-collapse: collapse; width: 100%; font-size: 13px; }
+      .x-md th, .x-md td { padding: 7px 10px; border-bottom: 1px solid var(--x-line); text-align: left; vertical-align: top; }
+      .x-md th { background: rgba(255, 255, 255, 0.06); font-weight: 600; }
+      .x-md tr:last-child td { border-bottom: 0; }
+      .x-caret::after { content: ""; display: inline-block; width: 7px; height: 15px; margin-left: 2px; vertical-align: -2px; border-radius: 2px;
+        background: var(--x-cyan); animation: x-blink 0.8s steps(2) infinite; }
+
+      /* thinking */
+      .x-think { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 20px; border-bottom-left-radius: 6px; color: var(--x-ink-2); font-size: 13px; }
+      .x-orbit { position: relative; width: 24px; height: 24px; animation: x-spin 1.1s linear infinite; }
+      .x-orbit i { position: absolute; width: 7px; height: 7px; border-radius: 50%; left: 50%; top: 50%; margin: -3.5px; }
+      .x-orbit i:nth-child(1) { background: var(--x-cyan); transform: rotate(0deg) translateY(-9px); box-shadow: 0 0 8px var(--x-cyan); }
+      .x-orbit i:nth-child(2) { background: var(--x-violet); transform: rotate(120deg) translateY(-9px); box-shadow: 0 0 8px var(--x-violet); }
+      .x-orbit i:nth-child(3) { background: var(--x-orange); transform: rotate(240deg) translateY(-9px); box-shadow: 0 0 8px var(--x-orange); }
+      @keyframes x-spin { to { transform: rotate(360deg); } }
+
+      /* error */
+      .x-msg--ai .x-bubble.x-err { border-color: rgba(255, 92, 92, 0.55); background: rgba(60, 10, 18, 0.55); }
+      .x-err strong { color: #ff8a8a; }
+      .x-err .x-pillbtn { margin-top: 10px; }
+
+      /* dock */
+      .x-dock { position: relative; z-index: 3; padding: 8px 12px calc(env(safe-area-inset-bottom) + 10px); }
+      .x-dockin { max-width: 760px; margin: 0 auto; display: flex; align-items: flex-end; gap: 6px; padding: 6px; border-radius: 28px;
+        transition: border-color 0.3s, box-shadow 0.3s; }
+      .x-dockin:focus-within { border-color: rgba(61, 245, 255, 0.45); box-shadow: 0 0 0 4px rgba(61, 245, 255, 0.08), 0 10px 40px rgba(139, 92, 255, 0.2); }
+      .x-input { flex: 1; min-width: 0; resize: none; border: 0; outline: 0; background: transparent; color: var(--x-ink);
+        font: 400 16px/1.4 var(--x-ui); padding: 11px 6px 11px 12px; max-height: 160px; min-height: 44px; }
+      .x-input::placeholder { color: var(--x-ink-2); }
+      .x-mic.is-live { background: rgba(255, 70, 90, 0.25); border-color: rgba(255, 90, 110, 0.7); animation: x-live 1.2s ease-in-out infinite; }
+      @keyframes x-live { 50% { box-shadow: 0 0 0 8px rgba(255, 70, 90, 0); } 0% { box-shadow: 0 0 0 0 rgba(255, 70, 90, 0.45); } }
+      .x-send { position: relative; overflow: hidden; border: 0; background-color: #3df5ff; background-image: var(--x-grad); color: #05060a; box-shadow: 0 4px 20px rgba(61, 245, 255, 0.3); }
+      .x-send:disabled { opacity: 0.45; cursor: default; box-shadow: none; }
+      .x-ripple { position: absolute; border-radius: 50%; background: rgba(255, 255, 255, 0.7); transform: scale(0); animation: x-ripple 0.6s ease-out forwards; pointer-events: none; }
+      @keyframes x-ripple { to { transform: scale(3); opacity: 0; } }
+      .x-hint { text-align: center; font-size: 12px; color: var(--x-ink-2); margin: 6px 0 0; opacity: 0.8; }
+
+      /* drawer */
+      .x-scrim { position: fixed; inset: 0; z-index: 9; background: rgba(0, 0, 0, 0.5); opacity: 0; pointer-events: none; transition: opacity 0.35s; }
+      .x-scrim.is-open { opacity: 1; pointer-events: auto; }
+      .x-drawer { position: fixed; z-index: 10; left: 0; right: 0; bottom: 0; margin: 0 auto; max-width: 560px; max-height: 88dvh; overflow-y: auto;
+        border-radius: 28px 28px 0 0; padding: 10px 18px calc(env(safe-area-inset-bottom) + 20px); background: rgba(12, 14, 24, 0.86);
+        transform: translateY(105%); transition: transform 0.5s var(--x-spring); visibility: hidden; }
+      .x-drawer.is-open { transform: none; visibility: visible; }
+      .x-grab { width: 40px; height: 4px; border-radius: 4px; background: var(--x-line); margin: 0 auto 10px; }
+      .x-drawer__head { display: flex; align-items: center; justify-content: space-between; }
+      .x-drawer h2 { font-family: var(--x-display); font-size: 22px; margin: 0; }
+      .x-field { margin-top: 18px; }
+      .x-field label, .x-lab { display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+      .x-row { display: flex; gap: 8px; }
+      .x-text, .x-select { width: 100%; min-width: 0; min-height: 46px; border-radius: 14px; border: 1px solid var(--x-line); background: rgba(255, 255, 255, 0.05);
+        color: var(--x-ink); font: 400 16px var(--x-ui); padding: 0 14px; outline: 0; transition: border-color 0.2s; }
+      .x-text:focus, .x-select:focus { border-color: var(--x-cyan); }
+      .x-select { appearance: none; -webkit-appearance: none; cursor: pointer;
+        background-image: linear-gradient(45deg, transparent 50%, #a3acc6 50%), linear-gradient(135deg, #a3acc6 50%, transparent 50%);
+        background-position: calc(100% - 20px) 50%, calc(100% - 15px) 50%; background-size: 5px 5px; background-repeat: no-repeat; }
+      .x-select option { background: #10131f; }
+      .x-note { font-size: 12px; color: var(--x-ink-2); line-height: 1.5; margin: 8px 0 0; }
+      .x-note a { color: var(--x-cyan); }
+      .x-pillbtn { min-height: 44px; padding: 0 18px; border-radius: 999px; border: 1px solid var(--x-line); background: #171b2b;
+        color: var(--x-ink); font: 600 13px var(--x-ui); cursor: pointer; white-space: nowrap; transition: transform 0.25s var(--x-spring), background 0.2s; }
+      .x-pillbtn:hover { background: #222840; }
+      .x-pillbtn:active { transform: scale(0.93); }
+      .x-pillbtn--grad { background-color: #3df5ff; background-image: var(--x-grad); color: #05060a; border: 0; }
+      .x-keylink { display: inline-flex; align-items: center; min-height: 44px; color: var(--x-cyan); font-size: 13px; font-weight: 600; text-underline-offset: 3px; }
+      .x-pillbtn--danger { color: #ff8a8a; border-color: rgba(255, 120, 120, 0.4); }
+      .x-testout { font-size: 13px; margin: 8px 0 0; min-height: 18px; overflow-wrap: anywhere; }
+      .x-testout.ok { color: #3dff9a; } .x-testout.bad { color: #ff8a8a; }
+      .x-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; cursor: pointer; }
+      .x-toggle input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+      .x-switch { width: 50px; height: 30px; border-radius: 30px; background: rgba(255, 255, 255, 0.15); position: relative; transition: background 0.3s; flex: none; }
+      .x-switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; transition: transform 0.4s var(--x-spring); }
+      .x-toggle input:checked + .x-switch { background: var(--x-grad); }
+      .x-toggle input:checked + .x-switch::after { transform: translateX(20px); }
+      .x-toggle input:focus-visible + .x-switch { outline: 2px solid var(--x-cyan); outline-offset: 2px; }
+      .x-sep { height: 1px; background: var(--x-line); margin: 18px 0 4px; }
+      .x-toast { position: fixed; z-index: 20; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 96px); transform: translate(-50%, 20px); opacity: 0;
+        padding: 10px 16px; border-radius: 999px; font-size: 13px; pointer-events: none; transition: opacity 0.3s, transform 0.4s var(--x-spring); }
+      .x-toast.is-on { opacity: 1; transform: translate(-50%, 0); }
+      .x-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+      button:focus-visible, a:focus-visible { outline: 2px solid var(--x-cyan); outline-offset: 2px; }
+
+      @media (max-width: 380px) {
+        .x-status span { display: none; }
+        .x-chip { font-size: 12.5px; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page" id="top">
+      <canvas id="x-bg" aria-hidden="true"></canvas>
+      <div class="x-vignette"></div>
+      <div class="x-app">
+        <header class="x-top x-glass">
+          <p class="x-word">SWANIX</p>
+          <p class="x-status" id="x-status" role="status"><i></i><span>Offline mode</span></p>
+          <button class="x-icon x-gear" id="x-gear" type="button" aria-label="Open settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+          </button>
+        </header>
+
+        <div class="x-banner x-glass" id="x-banner">
+          <span>Add your free Gemini key in ⚙️ to unlock full AI</span>
+          <button class="x-pillbtn" id="x-banner-btn" type="button">Add key</button>
+        </div>
+
+        <main class="x-scroll" id="x-scroll">
+          <div class="x-inner" id="x-chat" aria-live="polite">
+            <section class="x-welcome" id="x-welcome">
+              <h1>Hey <span>Swanix</span> 👋</h1>
+              <p>I'm your personal AI agent.</p>
+              <div class="x-chips">
+                <button class="x-chip x-glass" type="button" data-q="Make me a GATE AG study plan for today"><b>📚</b>Make me a GATE AG study plan for today</button>
+                <button class="x-chip x-glass" type="button" data-q="Explain the Penman–Monteith equation simply"><b>💧</b>Explain the Penman–Monteith equation simply</button>
+                <button class="x-chip x-glass" type="button" data-q="Quiz me on farm machinery"><b>🚜</b>Quiz me on farm machinery</button>
+                <button class="x-chip x-glass" type="button" data-q="Write a LinkedIn post about my ICAR training"><b>✍️</b>Write a LinkedIn post about my ICAR training</button>
+              </div>
+            </section>
+          </div>
+        </main>
+
+        <div class="x-dock">
+          <div class="x-dockin x-glass">
+            <textarea class="x-input" id="x-input" rows="1" aria-label="Message Swanix" placeholder="Ask Swanix anything…" enterkeyhint="send"></textarea>
+            <button class="x-icon x-mic" id="x-mic" type="button" aria-label="Voice input" hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg>
+            </button>
+            <button class="x-icon x-send" id="x-send" type="button" aria-label="Send" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="x-scrim" id="x-scrim"></div>
+      <aside class="x-drawer x-glass" id="x-drawer" role="dialog" aria-modal="true" aria-labelledby="x-set-title">
+        <div class="x-grab"></div>
+        <div class="x-drawer__head">
+          <h2 id="x-set-title">Settings</h2>
+          <button class="x-icon" id="x-close" type="button" aria-label="Close settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+          </button>
+        </div>
+        <div class="x-field">
+          <label for="x-key">Gemini API key</label>
+          <div class="x-row">
+            <input class="x-text" id="x-key" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your key" />
+            <button class="x-pillbtn x-pillbtn--grad" id="x-test" type="button">Test key</button>
+          </div>
+          <p class="x-testout" id="x-testout" role="status"></p>
+          <p class="x-note">Free key from Google AI Studio. Kept only in this tab's memory and never saved or sent anywhere except Google.</p>
+          <a class="x-keylink" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Get a free key at Google AI Studio ↗</a>
+        </div>
+        <div class="x-field">
+          <label for="x-model">Model</label>
+          <select class="x-select" id="x-model">
+            <option value="gemini-3.5-flash" selected>gemini-3.5-flash</option>
+            <option value="gemini-3.8-flash">gemini-3.8-flash</option>
+            <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite</option>
+          </select>
+        </div>
+        <div class="x-field">
+          <label for="x-custom">Custom model <span style="font-weight:400;color:var(--x-ink-2)">(overrides the list)</span></label>
+          <input class="x-text" id="x-custom" type="text" autocomplete="off" spellcheck="false" placeholder="e.g. gemini-2.5-pro" />
+        </div>
+        <div class="x-sep"></div>
+        <label class="x-toggle" for="x-speak">
+          <span class="x-lab" style="margin:0">Speak replies</span>
+          <input type="checkbox" id="x-speak" /><span class="x-switch"></span>
+        </label>
+        <div class="x-sep"></div>
+        <div class="x-field" style="margin-top:14px">
+          <button class="x-pillbtn x-pillbtn--danger" id="x-clear" type="button">Clear chat</button>
+        </div>
+      </aside>
+      <div class="x-toast x-glass" id="x-toast" role="status"></div>
+    </div>
+    <script src="hark.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+      /* ===== SWANIX core scene ===== */
+      var Core = (function () {
+        var canvas = document.getElementById("x-bg");
+        var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        var phone = Math.min(window.innerWidth, window.innerHeight) < 700;
+        var state = "idle";
+        var mix = { spin: 0, bright: 0, inward: 0, pulse: 0 };
+        var target = { spin: 0, bright: 0, inward: 0, pulse: 0 };
+        var pointer = { x: 0, y: 0, tx: 0, ty: 0 };
+        var running = true, raf = 0, last = performance.now(), t = 0;
+        var draw = null, resize = null;
+
+        function setState(s) {
+          state = s;
+          target.spin = s === "thinking" ? 1 : 0;
+          target.bright = s === "thinking" ? 1 : s === "speaking" ? 0.6 : 0;
+          target.inward = s === "thinking" ? 1 : 0;
+          target.pulse = s === "speaking" ? 1 : 0;
+        }
+        function onPointer(x, y) {
+          pointer.tx = (x / window.innerWidth) * 2 - 1;
+          pointer.ty = (y / window.innerHeight) * 2 - 1;
+        }
+        window.addEventListener("pointermove", function (e) { onPointer(e.clientX, e.clientY); }, { passive: true });
+        window.addEventListener("touchmove", function (e) { if (e.touches[0]) onPointer(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+
+        function initThree() {
+          if (typeof THREE === "undefined") throw new Error("no three");
+          var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: !phone, alpha: false, powerPreference: "high-performance" });
+          renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+          renderer.setClearColor(0x05060a, 1);
+          var scene = new THREE.Scene();
+          scene.fog = new THREE.FogExp2(0x05060a, 0.035);
+          var camera = new THREE.PerspectiveCamera(55, 1, 0.1, 200);
+          camera.position.set(0, 0, 9);
+          var core = new THREE.Group();
+          scene.add(core);
+
+          var ico = new THREE.Mesh(
+            new THREE.IcosahedronGeometry(1.75, 1),
+            new THREE.MeshBasicMaterial({ color: 0x3df5ff, wireframe: true, transparent: true, opacity: 0.45, blending: THREE.AdditiveBlending, depthWrite: false })
+          );
+          core.add(ico);
+          var ico2 = new THREE.Mesh(
+            new THREE.IcosahedronGeometry(2.25, 0),
+            new THREE.MeshBasicMaterial({ color: 0x8b5cff, wireframe: true, transparent: true, opacity: 0.18, blending: THREE.AdditiveBlending, depthWrite: false })
+          );
+          core.add(ico2);
+
+          var glowMat = new THREE.ShaderMaterial({
+            uniforms: { uTime: { value: 0 }, uBright: { value: 0 }, uPulse: { value: 0 } },
+            vertexShader: [
+              "varying vec3 vN; varying vec3 vV;",
+              "void main(){ vec4 mv = modelViewMatrix * vec4(position,1.0);",
+              " vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz);",
+              " gl_Position = projectionMatrix * mv; }"
+            ].join("\n"),
+            fragmentShader: [
+              "uniform float uTime; uniform float uBright; uniform float uPulse;",
+              "varying vec3 vN; varying vec3 vV;",
+              "void main(){ float f = pow(1.0 - max(dot(vN, vV), 0.0), 2.2);",
+              " vec3 cyan = vec3(0.24,0.96,1.0); vec3 vio = vec3(0.545,0.36,1.0); vec3 org = vec3(1.0,0.6,0.12);",
+              " float k = 0.5 + 0.5*sin(uTime*0.7 + vN.y*2.0);",
+              " vec3 col = mix(mix(cyan, vio, k), org, f*0.55 + uBright*0.2);",
+              " float core = pow(max(dot(vN, vV), 0.0), 3.0) * (0.35 + uBright*0.35);",
+              " float a = f*(0.9 + uBright*0.6 + uPulse*0.4) + core;",
+              " gl_FragColor = vec4(col*(1.0 + uBright*0.6) + vec3(core), a); }"
+            ].join("\n"),
+            transparent: true, blending: THREE.AdditiveBlending, depthWrite: false
+          });
+          var sphere = new THREE.Mesh(new THREE.SphereGeometry(1.15, 48, 48), glowMat);
+          core.add(sphere);
+          var halo = new THREE.Mesh(new THREE.SphereGeometry(1.6, 32, 32), glowMat.clone());
+          halo.material.uniforms = { uTime: { value: 0 }, uBright: { value: 0 }, uPulse: { value: 0 } };
+          halo.material.side = THREE.BackSide;
+          core.add(halo);
+
+          // particle rings
+          var N = phone ? 700 : 1500;
+          var pos = new Float32Array(N * 3), col = new Float32Array(N * 3);
+          var base = [];
+          var palette = [new THREE.Color(0x3df5ff), new THREE.Color(0x8b5cff), new THREE.Color(0xff9a1f)];
+          for (var i = 0; i < N; i++) {
+            var ring = i % 3;
+            var r = 2.8 + ring * 0.75 + (Math.random() - 0.5) * 0.5;
+            base.push({ a: Math.random() * Math.PI * 2, r: r, y: (Math.random() - 0.5) * 0.25, s: (0.15 + Math.random() * 0.2) * (ring === 1 ? -1 : 1), ring: ring, ph: Math.random() });
+            var c = palette[ring].clone().lerp(new THREE.Color(0xffffff), Math.random() * 0.3);
+            col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
+          }
+          var pGeo = new THREE.BufferGeometry();
+          pGeo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+          pGeo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+          var pMat = new THREE.PointsMaterial({ size: phone ? 0.06 : 0.05, vertexColors: true, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false });
+          var rings = new THREE.Points(pGeo, pMat);
+          scene.add(rings);
+          var tilts = [new THREE.Euler(1.2, 0, 0.3), new THREE.Euler(1.45, 0.4, -0.5), new THREE.Euler(0.9, -0.3, 0.8)];
+          var mats = tilts.map(function (e) { return new THREE.Matrix4().makeRotationFromEuler(e); });
+          var v = new THREE.Vector3();
+
+          // starfield
+          var S = phone ? 900 : 1800, sp = new Float32Array(S * 3);
+          for (var j = 0; j < S; j++) {
+            var rr = 30 + Math.random() * 60, th = Math.random() * Math.PI * 2, ph = Math.acos(2 * Math.random() - 1);
+            sp[j * 3] = rr * Math.sin(ph) * Math.cos(th); sp[j * 3 + 1] = rr * Math.sin(ph) * Math.sin(th); sp[j * 3 + 2] = rr * Math.cos(ph);
+          }
+          var sGeo = new THREE.BufferGeometry();
+          sGeo.setAttribute("position", new THREE.BufferAttribute(sp, 3));
+          var stars = new THREE.Points(sGeo, new THREE.PointsMaterial({ color: 0xbfd4ff, size: 0.18, transparent: true, opacity: 0.7, depthWrite: false, fog: false }));
+          scene.add(stars);
+
+          resize = function () {
+            var w = window.innerWidth, h = window.innerHeight;
+            renderer.setSize(w, h, false);
+            camera.aspect = w / h;
+            camera.position.z = w < h ? 11.5 : 9;
+            camera.updateProjectionMatrix();
+          };
+          var spinAngle = 0;
+          draw = function (dt) {
+            var speed = reduced ? 0.15 : 1;
+            spinAngle += dt * speed * (0.15 + mix.spin * 2.2);
+            ico.rotation.set(spinAngle * 0.6, spinAngle, 0);
+            ico2.rotation.set(-spinAngle * 0.3, -spinAngle * 0.5, spinAngle * 0.2);
+            var breath = 1 + Math.sin(t * 1.1) * 0.04 * (1 - mix.pulse);
+            var beat = mix.pulse * (Math.pow(Math.abs(Math.sin(t * 5.5)), 6) * 0.12);
+            var s = (breath + beat) * (1 + mix.bright * 0.06);
+            sphere.scale.setScalar(s);
+            halo.scale.setScalar(s * (1 + beat));
+            ico.scale.setScalar(1 + beat * 0.6 + mix.spin * 0.04);
+            [glowMat, halo.material].forEach(function (m) { m.uniforms.uTime.value = t; m.uniforms.uBright.value = mix.bright; m.uniforms.uPulse.value = mix.pulse; });
+            ico.material.opacity = 0.4 + mix.bright * 0.4;
+            ico.material.color.setHex(mix.bright > 0.5 ? 0x9ffbff : 0x3df5ff);
+            pMat.size = (phone ? 0.06 : 0.05) * (1 + mix.bright * 0.5);
+            for (var i = 0; i < N; i++) {
+              var b = base[i];
+              b.a += dt * speed * b.s * (1 + mix.spin * 5);
+              var shrink = 1 - mix.inward * (((t * 0.35 + b.ph) % 1) * 0.65);
+              var rr = b.r * shrink * (1 + beat * 0.5);
+              v.set(Math.cos(b.a) * rr, Math.sin(b.a) * rr, b.y).applyMatrix4(mats[b.ring]);
+              pos[i * 3] = v.x; pos[i * 3 + 1] = v.y; pos[i * 3 + 2] = v.z;
+            }
+            pGeo.attributes.position.needsUpdate = true;
+            stars.rotation.y += dt * 0.01 * speed;
+            stars.rotation.x += dt * 0.004 * speed;
+            camera.position.x += (pointer.x * 0.9 - camera.position.x) * 0.05;
+            camera.position.y += (-pointer.y * 0.6 + 0.6 - camera.position.y) * 0.05;
+            camera.lookAt(0, 0.6, 0);
+            renderer.render(scene, camera);
+          };
+        }
+
+        function init2D() {
+          var ctx = canvas.getContext("2d");
+          var w, h, dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+          var stars = [];
+          for (var i = 0; i < 160; i++) stars.push({ x: Math.random(), y: Math.random(), r: Math.random() * 1.2 + 0.3 });
+          var parts = [];
+          var n = phone ? 220 : 400;
+          for (var j = 0; j < n; j++) parts.push({ a: Math.random() * 6.28, r: 0.9 + (j % 3) * 0.25 + Math.random() * 0.15, s: (0.2 + Math.random() * 0.3) * (j % 3 === 1 ? -1 : 1), c: ["#3df5ff", "#8b5cff", "#ff9a1f"][j % 3], ph: Math.random() });
+          resize = function () {
+            w = window.innerWidth; h = window.innerHeight;
+            canvas.width = w * dpr; canvas.height = h * dpr;
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          };
+          var spin = 0;
+          draw = function (dt) {
+            var speed = reduced ? 0.15 : 1;
+            spin += dt * speed * (0.2 + mix.spin * 2);
+            ctx.fillStyle = "#05060a"; ctx.fillRect(0, 0, w, h);
+            ctx.fillStyle = "rgba(191,212,255,0.6)";
+            stars.forEach(function (s) { ctx.beginPath(); ctx.arc(((s.x + t * 0.002) % 1) * w, s.y * h, s.r, 0, 6.28); ctx.fill(); });
+            pointer.x += (pointer.tx - pointer.x) * 0.05; pointer.y += (pointer.ty - pointer.y) * 0.05;
+            var cx = w / 2 + pointer.x * 14, cy = h * 0.4 + pointer.y * 10, R = Math.min(w, h) * 0.17;
+            var beat = mix.pulse * Math.pow(Math.abs(Math.sin(t * 5.5)), 6) * 0.12;
+            var s = (1 + Math.sin(t * 1.1) * 0.04) * (1 + beat);
+            var g = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 1.8 * s);
+            g.addColorStop(0, "rgba(255,255,255," + (0.5 + mix.bright * 0.4) + ")");
+            g.addColorStop(0.25, "rgba(61,245,255,0.55)");
+            g.addColorStop(0.6, "rgba(139,92,255,0.25)");
+            g.addColorStop(1, "rgba(255,154,31,0)");
+            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, R * 1.8 * s, 0, 6.28); ctx.fill();
+            ctx.strokeStyle = "rgba(61,245,255," + (0.35 + mix.bright * 0.4) + ")"; ctx.lineWidth = 1;
+            ctx.beginPath();
+            for (var k = 0; k <= 6; k++) { var an = spin + k * 1.047; ctx.lineTo(cx + Math.cos(an) * R * s, cy + Math.sin(an) * R * s); }
+            ctx.stroke();
+            parts.forEach(function (p) {
+              p.a += dt * speed * p.s * (1 + mix.spin * 5);
+              var rr = R * 2 * p.r * (1 - mix.inward * (((t * 0.35 + p.ph) % 1) * 0.6));
+              ctx.fillStyle = p.c;
+              ctx.fillRect(cx + Math.cos(p.a) * rr, cy + Math.sin(p.a) * rr * 0.35, 1.6, 1.6);
+            });
+          };
+        }
+
+        try { initThree(); } catch (e) { try { init2D(); } catch (e2) { draw = null; } }
+        if (!draw) return { setState: function () {} };
+        resize();
+        window.addEventListener("resize", resize);
+
+        function loop(now) {
+          var dt = Math.min((now - last) / 1000, 0.05); last = now; t += dt * (reduced ? 0.3 : 1);
+          var k = Math.min(1, dt * 3);
+          for (var key in mix) mix[key] += (target[key] - mix[key]) * k;
+          pointer.x += (pointer.tx - pointer.x) * 0.04; pointer.y += (pointer.ty - pointer.y) * 0.04;
+          try { draw(dt); } catch (e) {}
+          if (running) raf = requestAnimationFrame(loop);
+        }
+        document.addEventListener("visibilitychange", function () {
+          if (document.hidden) { running = false; cancelAnimationFrame(raf); }
+          else if (!running) { running = true; last = performance.now(); raf = requestAnimationFrame(loop); }
+        });
+        raf = requestAnimationFrame(loop);
+        return { setState: setState };
+      })();
+    </script>
+    <script>
+      /* ===== SWANIX app ===== */
+      (function () {
+        var SYSTEM = "You are SWANIX, the personal AI agent of Gurupriya Arindam (nickname Swanix). Gurupriya is a final-year B.Tech Agricultural Engineering student at IGKV Raipur (graduating 2027), preparing for GATE Agricultural Engineering (AG) 2027 (exam window Feb 6–21, 2027, run by IIT Madras). They trained at ICAR-IISWC Dehradun (soil & water conservation) and ICAR-NINFET Kolkata (CREO farm machinery design), have 6+ years in Web3 communities (Binance campus ambassador, AIDAPP, Rapidnode and more), built the CropCrack GATE prep app, and run the Swanix Crypto community. Interests: AgriTech, precision agriculture, GIS/remote sensing, AI in agriculture, blockchain traceability. Be warm, sharp, concise and a bit witty. Use markdown. For GATE questions, be accurate, show formulas and units, and give exam tips. You can't take actions outside this chat (bookings, emails, purchases), so for those, tell them to ask Hark.";
+        var S = { key: "", model: "gemini-3.5-flash", custom: "", speak: false, history: [], busy: false };
+        var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        var $ = function (id) { return document.getElementById(id); };
+        var chat = $("x-chat"), scroller = $("x-scroll"), input = $("x-input"), sendBtn = $("x-send");
+        var welcome = $("x-welcome"), welcomeHTML = welcome.outerHTML;
+
+        var ICON_COPY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg>';
+        var ICON_REGEN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>';
+
+        function buzz(ms) { try { if (navigator.vibrate) navigator.vibrate(ms || 8); } catch (e) {} }
+        function toast(msg) {
+          var t = $("x-toast"); t.textContent = msg; t.classList.add("is-on");
+          clearTimeout(toast._t); toast._t = setTimeout(function () { t.classList.remove("is-on"); }, 1600);
+        }
+        function copyText(text) {
+          function fallback() {
+            var ta = document.createElement("textarea"); ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+            document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); } catch (e) {} ta.remove();
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).catch(fallback); else fallback();
+          toast("Copied ✓"); buzz(10);
+        }
+
+        /* ---------- safe markdown ---------- */
+        function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;"); }
+        function inline(raw) {
+          var s = esc(raw), codes = [];
+          s = s.replace(/`([^`]+)`/g, function (m, c) { codes.push(c); return "\u0001" + (codes.length - 1) + "\u0001"; });
+          s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+          s = s.replace(/(^|[\s(])(https?:\/\/[^\s<]+[^\s<.,;:!?)])/g, '$1<a href="$2" target="_blank" rel="noopener noreferrer">$2</a>');
+          s = s.replace(/\*\*([^*]+?)\*\*/g, "<strong>$1</strong>").replace(/__([^_]+?)__/g, "<strong>$1</strong>");
+          s = s.replace(/(^|[^*\w])\*(?!\s)([^*]+?)\*(?!\w)/g, "$1<em>$2</em>").replace(/(^|[\s(])_(?!\s)([^_]+?)_(?!\w)/g, "$1<em>$2</em>");
+          s = s.replace(/~~([^~]+)~~/g, "<del>$1</del>");
+          s = s.replace(/\u0001(\d+)\u0001/g, function (m, i) { return "<code>" + codes[+i] + "</code>"; });
+          return s;
+        }
+        function cells(line) { return line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(function (c) { return c.trim(); }); }
+        var RE_UL = /^\s*[-*+•]\s+/, RE_OL = /^\s*\d+[.)]\s+/, RE_H = /^(#{1,6})\s+(.*)$/, RE_FENCE = /^\s*```/, RE_TROW = /^\s*\|.*\|\s*$/, RE_TSEP = /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/;
+        function md(src) {
+          var lines = String(src).replace(/\r/g, "").split("\n"), out = [], i = 0, l;
+          while (i < lines.length) {
+            l = lines[i];
+            if (RE_FENCE.test(l)) {
+              var lang = l.replace(/^\s*```/, "").trim(), code = []; i++;
+              while (i < lines.length && !RE_FENCE.test(lines[i])) { code.push(lines[i]); i++; }
+              i++;
+              out.push('<div class="x-code"><div class="x-code__bar"><span>' + esc(lang || "code") + '</span><button class="x-copycode" type="button">Copy</button></div><pre><code>' + esc(code.join("\n")) + "</code></pre></div>");
+              continue;
+            }
+            if (!l.trim()) { i++; continue; }
+            var h = l.match(RE_H);
+            if (h) { var lv = Math.min(h[1].length + 2, 5); out.push("<h" + lv + ">" + inline(h[2]) + "</h" + lv + ">"); i++; continue; }
+            if (/^\s*(---|\*\*\*|___)\s*$/.test(l)) { out.push('<hr style="border:0;border-top:1px solid var(--x-line);margin:12px 0">'); i++; continue; }
+            if (RE_TROW.test(l) && i + 1 < lines.length && RE_TSEP.test(lines[i + 1])) {
+              var head = cells(l), rows = []; i += 2;
+              while (i < lines.length && RE_TROW.test(lines[i])) { rows.push(cells(lines[i])); i++; }
+              out.push('<div class="x-tablewrap"><table><thead><tr>' + head.map(function (c) { return "<th>" + inline(c) + "</th>"; }).join("") + "</tr></thead><tbody>" +
+                rows.map(function (r) { return "<tr>" + head.map(function (_, k) { return "<td>" + inline(r[k] || "") + "</td>"; }).join("") + "</tr>"; }).join("") + "</tbody></table></div>");
+              continue;
+            }
+            if (RE_UL.test(l) || RE_OL.test(l)) {
+              var ordered = RE_OL.test(l), re = ordered ? RE_OL : RE_UL, items = [];
+              while (i < lines.length && (re.test(lines[i]) || (/^\s{2,}\S/.test(lines[i]) && items.length && !RE_UL.test(lines[i]) && !RE_OL.test(lines[i])))) {
+                if (re.test(lines[i])) items.push(lines[i].replace(re, "")); else items[items.length - 1] += " " + lines[i].trim();
+                i++;
+              }
+              var start = ordered ? parseInt(l, 10) : 1;
+              out.push((ordered ? '<ol' + (start > 1 ? ' start="' + start + '"' : "") + ">" : "<ul>") + items.map(function (it) { return "<li>" + inline(it) + "</li>"; }).join("") + (ordered ? "</ol>" : "</ul>"));
+              continue;
+            }
+            if (/^\s*&gt;|^\s*>/.test(l)) {
+              var q = [];
+              while (i < lines.length && /^\s*>/.test(lines[i])) { q.push(inline(lines[i].replace(/^\s*>\s?/, ""))); i++; }
+              out.push("<blockquote>" + q.join("<br>") + "</blockquote>");
+              continue;
+            }
+            var para = [];
+            while (i < lines.length && lines[i].trim() && !RE_FENCE.test(lines[i]) && !RE_H.test(lines[i]) && !RE_UL.test(lines[i]) && !RE_OL.test(lines[i]) && !/^\s*>/.test(lines[i]) &&
+              !(RE_TROW.test(lines[i]) && i + 1 < lines.length && RE_TSEP.test(lines[i + 1]))) { para.push(inline(lines[i])); i++; }
+            out.push("<p>" + para.join("<br>") + "</p>");
+          }
+          return out.join("");
+        }
+
+        /* ---------- offline brain ---------- */
+        function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+        var KB = [
+          { k: /(study|daily|today'?s?)\s*(plan|schedule|timetable|routine)|plan.*(study|gate)|how (should|do) i (study|prepare)|prep(aration)? tips/i, a: function () {
+            return "### ⚡ Today's GATE AG plan\nA simple, repeatable day that adds up:\n\n| Block | Time | What to do |\n|---|---|---|\n| 🧠 Concepts | **2 h** | One topic deep: notes + standard text (e.g. soil & water conservation) |\n| 🔢 Numericals | **1 h** | 10–15 problems on the same topic, units written every time |\n| 📜 PYQs | **30 min** | Previous-year questions on today's topic, timed |\n| 🔁 Revision | **30 min** | Formula sheet + yesterday's mistakes |\n\n**Tips**\n- Keep a one-page *formula sheet* per subject and read it daily.\n- Mark every wrong PYQ and redo it after 3 days.\n- One full mock every Sunday once the syllabus is ~60% done.\n\n_Add a Gemini key in ⚙️ and I'll tailor this to your weak topics._"; } },
+          { k: /manning/i, a: "### Manning's equation\n**V = (1/n) · R^(2/3) · S^(1/2)**\n\n- **V**: mean velocity (m/s)\n- **n**: Manning's roughness coefficient\n- **R**: hydraulic radius = A/P (m)\n- **S**: slope of the energy line (m/m)\n\nThen discharge **Q = A · V**. _Exam tip:_ for a wide channel, R ≈ depth." },
+          { k: /rational (method|formula)|q\s*=\s*cia/i, a: "### Rational method\n**Q = C·I·A / 360**\n\n- **Q**: peak runoff (m³/s)\n- **C**: runoff coefficient (0–1)\n- **I**: rainfall intensity (mm/h) for a duration equal to the time of concentration\n- **A**: catchment area (ha)\n\n_Exam tip:_ check the units: with A in km² the constant becomes 3.6." },
+          { k: /scs|curve number|\bcn\b/i, a: "### SCS-CN method\n- Potential retention: **S = 25400/CN − 254** (mm)\n- Runoff: **Q = (P − 0.2S)² / (P + 0.8S)**, valid when P > 0.2S (else Q = 0)\n\n**P** = rainfall (mm), **Q** = runoff depth (mm), **Ia = 0.2S** is the initial abstraction.\n\n_Exam tip:_ higher CN → less retention → more runoff." },
+          { k: /usle|soil loss|erosion/i, a: "### USLE\n**A = R · K · L · S · C · P**\n\n- **A**: average annual soil loss (t/ha/yr)\n- **R**: rainfall erosivity\n- **K**: soil erodibility\n- **L, S**: slope length and steepness\n- **C**: cover management\n- **P**: support practice (contouring, terracing)\n\n_Straight from your ICAR-IISWC days._ 🌱" },
+          { k: /drawbar|tractor power|pull/i, a: "### Drawbar power\n**Drawbar power = Pull × Speed**\n\nWith pull in **kN** and speed in **m/s**, power is in **kW**. With speed in km/h: **P (kW) = F (kN) × v (km/h) / 3.6**.\n\n_Exam tip:_ tractive efficiency = drawbar power / axle power." },
+          { k: /darcy|seepage|hydraulic conductivity/i, a: "### Darcy's law\n**q = K · i**\n\n- **q**: flux / Darcy velocity (m/s)\n- **K**: hydraulic conductivity (m/s)\n- **i**: hydraulic gradient = Δh/L (dimensionless)\n\nTotal flow **Q = K · i · A**. _Exam tip:_ seepage velocity = q / porosity." },
+          { k: /formula|equation|formulae|cheat ?sheet/i, test: function (q) { return !/penman|monteith/i.test(q); }, a: "### 📐 Key GATE AG formulas\n| Topic | Formula | Units |\n|---|---|---|\n| Manning | V = (1/n) R^(2/3) S^(1/2) | m/s |\n| Rational method | Q = CIA/360 | Q m³/s, I mm/h, A ha |\n| SCS-CN | S = 25400/CN − 254; Q = (P−0.2S)²/(P+0.8S) | mm |\n| USLE | A = R·K·L·S·C·P | t/ha/yr |\n| Drawbar power | Pull × Speed | kN × m/s = kW |\n| Darcy | q = K·i | m/s |\n\nAsk me about any one for units and exam tips." },
+          { k: /gate|exam date|exam window|result|schedule|when is/i, a: "### 🗓️ GATE 2027\n- **Organised by:** IIT Madras\n- **Exam dates:** Feb 6, 7, 13, 14, 20 and 21, 2027\n- **AG paper session:** TBA\n- **Results:** Mar 19, 2027\n\nThat's your window, Swanix. Plan the full syllabus to finish by **December** and keep January for mocks." },
+          { k: /who are you|what are you|your name|what can you do|about you/i, a: "I'm **SWANIX**, Gurupriya's personal AI agent. ⚡\n\nI help with **GATE AG prep**, AgriTech ideas, writing, and Web3 stuff. Right now I'm in *offline mode*, running on a small built-in brain. Add a Gemini key in ⚙️ and I get the full one." },
+          { k: /gurupriya|arindam|about me|who am i|my (bio|profile|background)|tell me about (me|swanix)/i, a: "### 👤 Gurupriya Arindam · *Swanix*\n- Final-year **B.Tech Agricultural Engineering**, IGKV Raipur (graduating 2027)\n- Preparing for **GATE AG 2027** (Feb 6–21, 2027, IIT Madras)\n- Trained at **ICAR-IISWC Dehradun** (soil & water conservation) and **ICAR-NINFET Kolkata** (CREO farm machinery design)\n- **6+ years in Web3**: Binance campus ambassador, AIDAPP, Rapidnode and more\n- Built the **CropCrack** GATE prep app; runs the **Swanix Crypto** community\n\n**Into:** AgriTech, precision agriculture, GIS/remote sensing, AI in agriculture, blockchain traceability." },
+          { k: /motivat|inspire|quote|demotivat|tired|give up|stressed|can'?t focus/i, a: function () { return pick([
+            "> \"Success is the sum of small efforts, repeated day in and day out.\" · Robert Collier\n\nOne PYQ set today beats a perfect plan tomorrow. 💪",
+            "> \"The secret of getting ahead is getting started.\" · Mark Twain\n\nOpen the formula sheet. Just five minutes. Momentum does the rest.",
+            "> \"It always seems impossible until it's done.\" · Nelson Mandela\n\nFeb 2027 will arrive either way. Show up as the version who prepared. 🚀",
+            "> \"Don't watch the clock; do what it does. Keep going.\" · Sam Levenson\n\nTwo hours of concepts, then you've earned that chai. ☕"
+          ]); } },
+          { k: /joke|funny|make me laugh|lol/i, a: function () { return pick([
+            "Why did the tractor get promoted? 🚜\n\nIt was **outstanding in its field**.",
+            "Why don't soil scientists trust atoms?\n\nBecause they make up everything, *even the loam*. 🌱",
+            "My crypto portfolio and an over-irrigated field have one thing in common:\n\n**too much liquidity, roots still drowning.** 💧📉",
+            "Manning walks into a bar. The bartender says, *\"Rough day?\"*\n\nHe says, \"About **n = 0.035**.\""
+          ]); } },
+          { k: /^\s*(hi+|hello|hey+|yo|hola|namaste|gm|good (morning|afternoon|evening)|sup|hii+)\b/i, a: function () { return pick([
+            "Hey Swanix 👋 Ready when you are. Study plan, formulas, GATE dates, or a quick joke?",
+            "Hello! ⚡ Systems online (well, offline-ish). Try *\"key AG formulas\"* or *\"GATE 2027 dates\"*.",
+            "Namaste 🙏 What are we conquering today: hydrology, machinery, or motivation?"
+          ]); } },
+          { k: /\b(thank|thanks|thx|ty)\b/i, a: "Anytime, Swanix. 🙌 Go crush it." }
+        ];
+        function offlineAnswer(q) {
+          for (var i = 0; i < KB.length; i++) {
+            var e = KB[i];
+            if (e.k.test(q) && (!e.test || e.test(q))) return typeof e.a === "function" ? e.a() : e.a;
+          }
+          return "I need my AI brain for that, so add a Gemini key in ⚙️.\n\nOffline, I can still help with: **study plan**, **GATE 2027 dates**, **key AG formulas** (Manning, rational method, SCS-CN, USLE, drawbar power, Darcy), **about you**, a **motivational quote**, or a **joke**.";
+        }
+
+        /* ---------- Gemini ---------- */
+        function model() { return (S.custom.trim() || S.model).replace(/^models\//, ""); }
+        function gemini(contents, key) {
+          var url = "https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model()) + ":generateContent";
+          return fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+            body: JSON.stringify({ systemInstruction: { parts: [{ text: SYSTEM }] }, contents: contents, generationConfig: { temperature: 0.8 } })
+          }).then(function (r) {
+            return r.json().catch(function () { return null; }).then(function (j) {
+              if (!r.ok) {
+                var err = new Error((j && j.error && j.error.message) || "HTTP " + r.status);
+                err.status = r.status; throw err;
+              }
+              var c = j && j.candidates && j.candidates[0];
+              var parts = (c && c.content && c.content.parts) || [];
+              var text = parts.map(function (p) { return p.text || ""; }).join("");
+              if (!text) {
+                var why = (j && j.promptFeedback && j.promptFeedback.blockReason) || (c && c.finishReason) || "empty response";
+                var e2 = new Error("No text came back (" + why + ")."); e2.status = 0; throw e2;
+              }
+              return text;
+            });
+          }, function (netErr) { var e = new Error(netErr && netErr.message || "Network error"); e.network = true; throw e; });
+        }
+        function contentsFromHistory() {
+          var h = S.history.slice(-20);
+          while (h.length && h[0].role !== "user") h.shift();
+          return h.map(function (m) { return { role: m.role, parts: [{ text: m.text }] }; });
+        }
+
+        /* ---------- UI ---------- */
+        function nearBottom() { return scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 140; }
+        function toBottom(force) { if (force || nearBottom()) scroller.scrollTop = scroller.scrollHeight; }
+        function hideWelcome() { var w = $("x-welcome"); if (w) w.remove(); }
+        function setStatus() {
+          var on = !!S.key.trim(), st = $("x-status");
+          st.classList.toggle("is-on", on);
+          st.querySelector("span").textContent = on ? "Online · Gemini" : "Offline mode";
+          $("x-banner").hidden = on;
+        }
+        function addUser(text) {
+          hideWelcome();
+          var el = document.createElement("div");
+          el.className = "x-msg x-msg--user";
+          el.innerHTML = '<div class="x-bubble"></div>';
+          el.firstChild.textContent = text;
+          chat.appendChild(el); toBottom(true);
+          return el;
+        }
+        function addAI() {
+          var el = document.createElement("div");
+          el.className = "x-msg x-msg--ai";
+          el.innerHTML = '<span class="x-ava" aria-hidden="true"></span><div class="x-aiwrap"><div class="x-bubble x-glass x-md"></div><div class="x-actions"></div></div>';
+          chat.appendChild(el); toBottom(true);
+          return el;
+        }
+        function addThinking() {
+          var el = document.createElement("div");
+          el.className = "x-msg x-msg--ai";
+          el.innerHTML = '<span class="x-ava" aria-hidden="true"></span><div class="x-think x-glass" role="status"><span class="x-orbit"><i></i><i></i><i></i></span>Swanix is thinking…</div>';
+          chat.appendChild(el); toBottom(true);
+          return el;
+        }
+        function plain(mdText) {
+          return mdText.replace(/```[\s\S]*?```/g, " code block. ").replace(/[#*_`>|~]/g, "").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/-{3,}/g, "").replace(/\s+/g, " ").trim();
+        }
+        function speakOut(text) {
+          if (!S.speak || !("speechSynthesis" in window)) return;
+          try { speechSynthesis.cancel(); var u = new SpeechSynthesisUtterance(plain(text).slice(0, 3000)); u.rate = 1.03; speechSynthesis.speak(u); } catch (e) {}
+        }
+        function typewrite(el, text, done) {
+          var bubble = el.querySelector(".x-bubble");
+          if (reduced) { bubble.innerHTML = md(text); toBottom(); done(); return; }
+          Core.setState("speaking");
+          var i = 0, stepBase = Math.max(2, Math.ceil(text.length / 260));
+          bubble.classList.add("x-caret");
+          (function tick() {
+            i = Math.min(text.length, i + stepBase + Math.floor(Math.random() * 2));
+            bubble.innerHTML = md(text.slice(0, i));
+            var last = bubble.lastElementChild || bubble;
+            if (i < text.length) { last.classList.add("x-caret"); bubble.classList.remove("x-caret"); }
+            toBottom();
+            if (i < text.length) setTimeout(tick, 16);
+            else { bubble.classList.remove("x-caret"); bubble.innerHTML = md(text); toBottom(); done(); }
+          })();
+        }
+        function finishAI(el, text) {
+          var acts = el.querySelector(".x-actions");
+          acts.innerHTML = '<button class="x-act" type="button" data-act="copy" aria-label="Copy reply">' + ICON_COPY + 'Copy</button><button class="x-act" type="button" data-act="regen" aria-label="Regenerate reply">' + ICON_REGEN + 'Regenerate</button>';
+          el._text = text;
+          requestAnimationFrame(function () { acts.classList.add("is-ready"); });
+        }
+        function showError(err, retry) {
+          var el = addAI(), bubble = el.querySelector(".x-bubble");
+          bubble.classList.add("x-err");
+          var msg;
+          if (err.network) msg = "<strong>Network hiccup.</strong> I couldn't reach Gemini. Check your connection and try again.";
+          else if (err.status === 400 && /api key|api_key|key not valid/i.test(err.message)) msg = "<strong>Check your API key in Settings.</strong> Google says it isn't valid.";
+          else if (err.status === 401 || err.status === 403) msg = "<strong>Check your API key in Settings.</strong> " + esc(err.message);
+          else if (err.status === 429) msg = "<strong>Rate limit hit, wait a minute.</strong> The free tier caps requests per minute.";
+          else if (err.status === 404) msg = "<strong>Model not found.</strong> Pick another model in Settings. <br><small>" + esc(err.message) + "</small>";
+          else msg = "<strong>Something went wrong.</strong> " + esc(err.message);
+          bubble.innerHTML = "<p>" + msg + "</p>";
+          var row = document.createElement("div"); row.style.display = "flex"; row.style.gap = "8px"; row.style.flexWrap = "wrap";
+          if (err.network || err.status === 429 || err.status >= 500 || err.status === 0) {
+            var b = document.createElement("button"); b.className = "x-pillbtn"; b.type = "button"; b.textContent = "↻ Retry";
+            b.addEventListener("click", function () { el.remove(); retry(); });
+            row.appendChild(b);
+          }
+          if (err.status === 400 || err.status === 401 || err.status === 403 || err.status === 404) {
+            var s = document.createElement("button"); s.className = "x-pillbtn"; s.type = "button"; s.textContent = "⚙️ Open Settings";
+            s.addEventListener("click", openDrawer); row.appendChild(s);
+          }
+          if (row.children.length) bubble.appendChild(row);
+          toBottom(true);
+        }
+
+        function respond() {
+          S.busy = true; updateSend();
+          Core.setState("thinking");
+          var thinking = addThinking();
+          var last = S.history[S.history.length - 1];
+          var key = S.key.trim();
+          var p = key ? gemini(contentsFromHistory(), key) : new Promise(function (res) { setTimeout(function () { res(offlineAnswer(last.text)); }, 550 + Math.random() * 500); });
+          p.then(function (text) {
+            thinking.remove();
+            S.history.push({ role: "model", text: text });
+            if (S.history.length > 40) S.history = S.history.slice(-40);
+            var el = addAI();
+            typewrite(el, text, function () {
+              finishAI(el, text);
+              Core.setState("idle"); S.busy = false; updateSend();
+              speakOut(text);
+            });
+          }).catch(function (err) {
+            thinking.remove();
+            Core.setState("idle"); S.busy = false; updateSend();
+            showError(err, function () { respond(); });
+          });
+        }
+        function send(text) {
+          text = (text != null ? text : input.value).trim();
+          if (!text || S.busy) return;
+          buzz(12);
+          if ("speechSynthesis" in window) try { speechSynthesis.cancel(); } catch (e) {}
+          input.value = ""; grow(); updateSend();
+          addUser(text);
+          S.history.push({ role: "user", text: text });
+          respond();
+        }
+        function regenerate(el) {
+          if (S.busy) return;
+          // drop this reply and everything after it, then answer the preceding user turn again
+          var msgs = [].slice.call(chat.querySelectorAll(".x-msg"));
+          var idx = msgs.indexOf(el);
+          var aiCount = msgs.slice(0, idx + 1).filter(function (m) { return m._text != null; }).length;
+          // find the aiCount-th model message in history
+          var seen = 0, cut = -1;
+          for (var i = 0; i < S.history.length; i++) if (S.history[i].role === "model" && ++seen === aiCount) { cut = i; break; }
+          if (cut < 0) return;
+          S.history = S.history.slice(0, cut);
+          msgs.slice(idx).forEach(function (m) { m.remove(); });
+          buzz(10);
+          respond();
+        }
+
+        function grow() { input.style.height = "auto"; input.style.height = Math.min(input.scrollHeight, 160) + "px"; }
+        function updateSend() { sendBtn.disabled = S.busy || !input.value.trim(); }
+        input.addEventListener("input", function () { grow(); updateSend(); });
+        input.addEventListener("keydown", function (e) {
+          if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(); }
+        });
+        sendBtn.addEventListener("click", function (e) {
+          var r = sendBtn.getBoundingClientRect(), s = document.createElement("span"), size = r.width;
+          s.className = "x-ripple"; s.style.width = s.style.height = size + "px";
+          s.style.left = ((e.clientX || r.left + r.width / 2) - r.left - size / 2) + "px";
+          s.style.top = ((e.clientY || r.top + r.height / 2) - r.top - size / 2) + "px";
+          sendBtn.appendChild(s); setTimeout(function () { s.remove(); }, 650);
+          send();
+        });
+        chat.addEventListener("click", function (e) {
+          var chip = e.target.closest(".x-chip");
+          if (chip) { buzz(8); input.value = chip.getAttribute("data-q"); grow(); updateSend(); input.focus(); return; }
+          var cc = e.target.closest(".x-copycode");
+          if (cc) { copyText(cc.closest(".x-code").querySelector("code").textContent); cc.textContent = "Copied ✓"; setTimeout(function () { cc.textContent = "Copy"; }, 1400); return; }
+          var act = e.target.closest(".x-act");
+          if (act) {
+            var msg = act.closest(".x-msg");
+            if (act.getAttribute("data-act") === "copy") copyText(msg._text || "");
+            else regenerate(msg);
+          }
+        });
+
+        /* ---------- voice ---------- */
+        var SR = window.SpeechRecognition || window.webkitSpeechRecognition, mic = $("x-mic"), rec = null, listening = false;
+        if (SR) {
+          mic.hidden = false;
+          mic.addEventListener("click", function () {
+            buzz(10);
+            if (listening && rec) { rec.stop(); return; }
+            try {
+              rec = new SR(); rec.lang = navigator.language || "en-IN"; rec.interimResults = true; rec.continuous = false;
+              var base = input.value ? input.value.replace(/\s*$/, " ") : "";
+              rec.onresult = function (ev) {
+                var txt = ""; for (var i = 0; i < ev.results.length; i++) txt += ev.results[i][0].transcript;
+                input.value = base + txt; grow(); updateSend();
+              };
+              rec.onend = function () { listening = false; mic.classList.remove("is-live"); mic.setAttribute("aria-label", "Voice input"); };
+              rec.onerror = function (ev) { if (ev.error === "not-allowed") toast("Microphone blocked"); };
+              rec.start(); listening = true; mic.classList.add("is-live"); mic.setAttribute("aria-label", "Stop listening");
+            } catch (err) { toast("Voice input unavailable"); }
+          });
+        }
+
+        /* ---------- settings ---------- */
+        var drawer = $("x-drawer"), scrim = $("x-scrim"), lastFocus = null;
+        function openDrawer() { lastFocus = document.activeElement; drawer.classList.add("is-open"); scrim.classList.add("is-open"); buzz(8); setTimeout(function () { $("x-key").focus({ preventScroll: true }); }, 350); }
+        function closeDrawer() { drawer.classList.remove("is-open"); scrim.classList.remove("is-open"); if (lastFocus && lastFocus.focus) lastFocus.focus(); }
+        $("x-gear").addEventListener("click", openDrawer);
+        $("x-banner-btn").addEventListener("click", openDrawer);
+        $("x-close").addEventListener("click", closeDrawer);
+        scrim.addEventListener("click", closeDrawer);
+        document.addEventListener("keydown", function (e) { if (e.key === "Escape" && drawer.classList.contains("is-open")) closeDrawer(); });
+        $("x-key").addEventListener("input", function (e) { S.key = e.target.value; setStatus(); $("x-testout").textContent = ""; });
+        $("x-model").addEventListener("change", function (e) { S.model = e.target.value; });
+        $("x-custom").addEventListener("input", function (e) { S.custom = e.target.value; });
+        $("x-speak").addEventListener("change", function (e) {
+          S.speak = e.target.checked;
+          if (S.speak && !("speechSynthesis" in window)) { toast("Speech isn't supported here"); S.speak = false; e.target.checked = false; }
+          else if (!S.speak && "speechSynthesis" in window) speechSynthesis.cancel();
+        });
+        $("x-clear").addEventListener("click", function () {
+          if (S.busy) return;
+          S.history = [];
+          if ("speechSynthesis" in window) try { speechSynthesis.cancel(); } catch (e) {}
+          chat.innerHTML = welcomeHTML;
+          closeDrawer(); toast("Chat cleared"); buzz(15);
+        });
+        $("x-test").addEventListener("click", function () {
+          var out = $("x-testout"), btn = $("x-test"), key = S.key.trim();
+          out.className = "x-testout";
+          if (!key) { out.textContent = "Paste a key first."; out.classList.add("bad"); return; }
+          out.textContent = "Testing " + model() + "…"; btn.disabled = true;
+          gemini([{ role: "user", parts: [{ text: "Reply with just: OK" }] }], key).then(function () {
+            out.textContent = "✓ Key works with " + model(); out.classList.add("ok"); buzz(20);
+          }).catch(function (err) {
+            out.textContent = "✕ " + (err.network ? "Network error: couldn't reach Google." : (err.status ? err.status + ": " : "") + err.message); out.classList.add("bad");
+          }).then(function () { btn.disabled = false; });
+        });
+
+        setStatus(); updateSend();
+      })();
+    </script>
+  </body>
+</html>
